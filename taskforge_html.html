@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskForge - AI Powered To Do List</title>
+    <link rel="stylesheet" href="taskforge_css.css">
+</head>
+
+<body>
+    <header>
+        <h1>TaskForge</h1>
+        <p>AI Powered To Do List</p>
+    </header>
+
+    <main>
+        <!-- Add Task Section -->
+        <section>
+            <h2>Add New Task</h2>
+            <form>
+                <input type="text" placeholder="Enter task description" required>
+                <select>
+                    <option value="low">Low Priority</option>
+                    <option value="medium">Medium Priority</option>
+                    <option value="high">High Priority</option>
+                </select>
+                <button type="submit">Add Task</button>
+            </form>
+        </section>
+
+        <!-- Filter Section -->
+        <section>
+            <h3>Filter Tasks</h3>
+            <select>
+                <option value="all">All Priorities</option>
+                <option value="high">High Priority</option>
+                <option value="medium">Medium Priority</option>
+                <option value="low">Low Priority</option>
+            </select>
+        </section>
+
+        <!-- Progress Section -->
+        <section>
+            <h3>Progress</h3>
+            <label for="progress">Tasks Completed:</label>
+            <progress id="progress" value="3" max="8">3 out of 8</progress>
+            <span>3/8 tasks completed (37.5%)</span>
+        </section>
+
+        <!-- Tasks List Section -->
+        <section>
+            <h3>Your Tasks</h3>
+
+            <!-- High Priority Tasks -->
+            <div data-priority="high">
+                <h4>High Priority</h4>
+                <ul>
+                    <li>
+                        <input type="checkbox" id="task1">
+                        <label for="task1">Complete project proposal</label>
+                        <meter value="0.3" min="0" max="1">30%</meter>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="task2" checked>
+                        <label for="task2">Submit quarterly report</label>
+                        <meter value="1" min="0" max="1">100%</meter>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Medium Priority Tasks -->
+            <div data-priority="medium">
+                <h4>Medium Priority</h4>
+                <ul>
+                    <li>
+                        <input type="checkbox" id="task3">
+                        <label for="task3">Update website content</label>
+                        <meter value="0.7" min="0" max="1">70%</meter>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="task4" checked>
+                        <label for="task4">Review team feedback</label>
+                        <meter value="1" min="0" max="1">100%</meter>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="task5">
+                        <label for="task5">Schedule client meetings</label>
+                        <meter value="0.2" min="0" max="1">20%</meter>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Low Priority Tasks -->
+            <div data-priority="low">
+                <h4>Low Priority</h4>
+                <ul>
+                    <li>
+                        <input type="checkbox" id="task6">
+                        <label for="task6">Organize desk workspace</label>
+                        <meter value="0.5" min="0" max="1">50%</meter>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="task7" checked>
+                        <label for="task7">Read industry articles</label>
+                        <meter value="1" min="0" max="1">100%</meter>
+                    </li>
+                    <li>
+                        <input type="checkbox" id="task8">
+                        <label for="task8">Update LinkedIn profile</label>
+                        <meter value="0.1" min="0" max="1">10%</meter>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>
