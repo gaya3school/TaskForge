@@ -1,18 +1,29 @@
-// src/pages/Home.tsx
-
+import { useState } from 'react'; // 1. Import useState
 import { useTasks } from '@/hooks/useTasks';
 import { TaskList } from '@/components/tasks/TaskList';
 import { TaskCalendar } from '@/components/calendar/TaskCalendar';
 import { AddTaskDialog } from '@/components/tasks/AddTaskDialog';
+import { EditTaskDialog } from '@/components/tasks/EditTaskDialog'; // 2. Import EditTaskDialog
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ListTodo, Calendar } from 'lucide-react';
+import { Task } from '@/types/task'; // 3. Import Task type
 
 export default function Home() {
-  // We replace all the local state and handlers with our single, powerful hook
-  const { tasks, addTask, completeTask } = useTasks();
+  // 4. Get the new editTask function
+  const { tasks, addTask, completeTask, editTask } = useTasks();
 
-  const handleTaskEdit = (taskId: string) => {
-    console.log('Edit task:', taskId); // Placeholder for future edit functionality
+  // 5. Add state to track which task is being edited
+  const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+
+  // 6. Update handleTaskEdit to set the state
+  const handleTaskEdit = (task: Task) => {
+    setTaskToEdit(task);
+  };
+
+  // 7. Add a new handler for submitting the edit
+  const handleEditTaskSubmit = (taskId: string, updates: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    editTask(taskId, updates);
+    setTaskToEdit(null); // Close the dialog
   };
 
   return (
@@ -38,23 +49,32 @@ export default function Home() {
             Calendar
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="tasks" className="mt-6">
           <TaskList
             tasks={tasks}
             onTaskComplete={completeTask}
-            onTaskEdit={handleTaskEdit}
+            onTaskEdit={handleTaskEdit} // 8. This now works
           />
         </TabsContent>
-        
+
         <TabsContent value="calendar" className="mt-6">
+          {/* 9. Also update TaskCalendar's onTaskEdit prop type (in the file itself) */}
           <TaskCalendar
             tasks={tasks}
             onTaskComplete={completeTask}
-            onTaskEdit={handleTaskEdit}
+            onTaskEdit={handleTaskEdit} // 10. And pass the handler here
           />
         </TabsContent>
       </Tabs>
+
+      {/* 11. Render the Edit Task Dialog */}
+      <EditTaskDialog
+        task={taskToEdit}
+        open={!!taskToEdit}
+        onOpenChange={(open) => !open && setTaskToEdit(null)}
+        onEditTask={handleEditTaskSubmit}
+      />
     </div>
   );
 }

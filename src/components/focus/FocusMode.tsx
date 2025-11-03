@@ -8,13 +8,34 @@ interface FocusModeProps {
   isActive: boolean;
   onClose: () => void;
   onSessionComplete?: (duration: number) => void;
+  initialDurationInMinutes?: number; // 1. Our new prop
 }
 
-export function FocusMode({ isActive, onClose, onSessionComplete }: FocusModeProps) {
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // 25 minutes in seconds
-  const [isRunning, setIsRunning] = useState(false);
-  const [totalTime] = useState(25 * 60);
+export function FocusMode({
+  isActive,
+  onClose,
+  onSessionComplete,
+  initialDurationInMinutes = 25 // 2. Set default value
+}: FocusModeProps) {
 
+  // 3. Update state to be set by the prop
+  const [totalTime, setTotalTime] = useState(initialDurationInMinutes * 60);
+  const [timeLeft, setTimeLeft] = useState(totalTime);
+  const [isRunning, setIsRunning] = useState(false);
+
+  // 4. This new effect resets the timer every time the modal is opened
+  //    This ensures that if you start a 10-min session,
+  //    and then a 25-min session, the timer is correct.
+  useEffect(() => {
+    if (isActive) {
+      const durationInSeconds = (initialDurationInMinutes || 25) * 60;
+      setTotalTime(durationInSeconds);
+      setTimeLeft(durationInSeconds);
+      setIsRunning(false); // Don't auto-start
+    }
+  }, [isActive, initialDurationInMinutes]); // Re-run if the modal opens or the duration changes
+
+  // 5. This timer-running effect is now correct
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -42,6 +63,8 @@ export function FocusMode({ isActive, onClose, onSessionComplete }: FocusModePro
 
   const handleStart = () => setIsRunning(true);
   const handlePause = () => setIsRunning(false);
+
+  // 6. Ensure handleStop resets to the *current* totalTime
   const handleStop = () => {
     setIsRunning(false);
     setTimeLeft(totalTime);
@@ -65,9 +88,10 @@ export function FocusMode({ isActive, onClose, onSessionComplete }: FocusModePro
             Stay focused and productive
           </p>
         </CardHeader>
-        
+
         <CardContent className="space-y-6">
           <div className="text-center">
+            {/* 7. The timer will now show the correct custom time */}
             <div className="text-6xl font-mono font-bold text-primary mb-4">
               {formatTime(timeLeft)}
             </div>
@@ -95,10 +119,11 @@ export function FocusMode({ isActive, onClose, onSessionComplete }: FocusModePro
                 Pause
               </Button>
             )}
-            
+
             <Button
               onClick={handleStop}
               variant="outline"
+
               size="lg"
             >
               <Square className="h-5 w-5 mr-2" />
@@ -113,6 +138,7 @@ export function FocusMode({ isActive, onClose, onSessionComplete }: FocusModePro
                 Great work!
               </p>
               <p className="text-muted-foreground">
+                {/* 8. Show the correct session length */}
                 You completed a {totalTime / 60}-minute focus session.
               </p>
             </div>

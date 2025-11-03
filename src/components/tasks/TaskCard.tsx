@@ -1,18 +1,26 @@
-import { Clock, Tag, MoreHorizontal, CheckCircle2 } from "lucide-react";
+import { Clock, Tag, MoreHorizontal, CheckCircle2, Timer } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Task } from "@/types/task";
+import { useNavigate } from 'react-router-dom'; // 2. Import useNavigate
+import { // 3. Import DropdownMenu components
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface TaskCardProps {
   task: Task;
   onComplete?: (taskId: string) => void;
-  onEdit?: (taskId: string) => void;
+  onEdit?: (task: Task) => void;
 }
 
 export function TaskCard({ task, onComplete, onEdit }: TaskCardProps) {
+  const navigate = useNavigate();
   const priorityColors = {
     high: "border-l-priority-high bg-red-50 dark:bg-red-950/20",
     medium: "border-l-priority-medium bg-yellow-50 dark:bg-yellow-950/20", 
@@ -24,6 +32,27 @@ export function TaskCard({ task, onComplete, onEdit }: TaskCardProps) {
     const now = new Date();
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    // Calculates remaining time and navigates
+    const handleStartFocus = () => {
+      // Check if task has estimated hours and is not completed
+      if (task.estimatedHours && task.estimatedHours > 0 && task.progress < 100) {
+        const totalMinutes = task.estimatedHours * 60;
+        const remainingProgress = (100 - task.progress) / 100;
+        const remainingMinutes = Math.round(totalMinutes * remainingProgress);
+
+        if (remainingMinutes > 0) {
+          // Navigate to focus page with time in minutes
+          navigate(`/focus?time=${remainingMinutes}`);
+        } else {
+          // Fallback if calculation is 0 (e.g., 99.9% complete)
+          navigate('/focus');
+        }
+      } else {
+        // Navigate to default 25-min session if no hours or task is complete
+        navigate('/focus');
+      }
+    };
     
     if (diffDays < 0) return "Overdue";
     if (diffDays === 0) return "Today";
@@ -106,14 +135,26 @@ export function TaskCard({ task, onComplete, onEdit }: TaskCardProps) {
             >
               <CheckCircle2 className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit?.(task.id)}
-              className="h-8 w-8 p-0"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate('/focus')}>
+                  <Timer className="h-4 w-4 mr-2" />
+                  Start Focus Session
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEdit?.(task)}>
+                  Edit Task
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </CardContent>

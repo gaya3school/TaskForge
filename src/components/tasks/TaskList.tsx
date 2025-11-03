@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface TaskListProps {
   tasks: Task[];
   onTaskComplete?: (taskId: string) => void;
-  onTaskEdit?: (taskId: string) => void;
+  onTaskEdit?: (task: Task) => void;
 }
 
 export function TaskList({ tasks, onTaskComplete, onTaskEdit }: TaskListProps) {
@@ -58,7 +58,7 @@ export function TaskList({ tasks, onTaskComplete, onTaskEdit }: TaskListProps) {
                     key={task.id}
                     task={task}
                     onComplete={onTaskComplete}
-                    onEdit={onTaskEdit}
+                    onEdit={() => onTaskEdit?.(task)}
                   />
                 ))}
               </div>

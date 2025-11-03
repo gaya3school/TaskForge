@@ -4,14 +4,14 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Task } from '@/types/task';
+import { Task } from '@/types/task'; // Make sure this import is here
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { cn } from '@/lib/utils';
 
 interface TaskCalendarProps {
   tasks: Task[];
   onTaskComplete?: (taskId: string) => void;
-  onTaskEdit?: (taskId: string) => void;
+  onTaskEdit?: (task: Task) => void; // <-- 1. THIS LINE IS CHANGED
 }
 
 export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendarProps) {
@@ -20,7 +20,7 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
 
   // Get tasks for a specific date
   const getTasksForDate = (date: Date) => {
-    return tasks.filter(task => 
+    return tasks.filter(task =>
       task.dueDate && isSameDay(task.dueDate, date) && !task.completed
     );
   };
@@ -30,7 +30,7 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
     const dateTasks = getTasksForDate(date);
     const highPriorityCount = dateTasks.filter(t => t.priority === 'high').length;
     const totalCount = dateTasks.length;
-    
+
     return { totalCount, highPriorityCount };
   };
 
@@ -48,7 +48,7 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
   const monthEnd = endOfMonth(currentDate);
   const calendarStart = startOfWeek(monthStart);
   const calendarEnd = endOfWeek(monthEnd);
-  
+
   const calendarDays = eachDayOfInterval({
     start: calendarStart,
     end: calendarEnd
@@ -86,7 +86,7 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
                 </div>
               ))}
             </div>
-            
+
             <div className="grid grid-cols-7 gap-1">
               {calendarDays.map((day) => {
                 const { totalCount, highPriorityCount } = getDateInfo(day);
@@ -107,7 +107,7 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
                     )}
                   >
                     <span>{format(day, 'd')}</span>
-                    
+
                     {/* Task indicators */}
                     {totalCount > 0 && (
                       <div className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 flex gap-0.5">
@@ -118,7 +118,7 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
                             isSelected && "bg-white"
                           )} />
                         )}
-                        
+
                         {/* Total tasks indicator */}
                         {totalCount > highPriorityCount && (
                           <div className={cn(
@@ -170,7 +170,7 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
                       <TaskCard
                         task={task}
                         onComplete={onTaskComplete}
-                        onEdit={onTaskEdit}
+                        onEdit={() => onTaskEdit?.(task)}
                       />
                     </div>
                   ))}

@@ -37,16 +37,16 @@ const initialTasks: Task[] = [
 const TASKS_STORAGE_KEY = 'taskforge-tasks';
 
 // These helper functions correctly handle converting Date objects to strings for storage
-const jsonReplacer = (key: string, value: any) => {
+const jsonReplacer = (key: string, value: unknown) => {
   if (['dueDate', 'createdAt', 'updatedAt'].includes(key) && value) {
-    return new Date(value).toISOString();
+    return new Date(value as string | number | Date).toISOString();
   }
   return value;
 };
 
-const jsonReviver = (key: string, value: any) => {
+const jsonReviver = (key: string, value: unknown) => {
   if (['dueDate', 'createdAt', 'updatedAt'].includes(key) && value) {
-    return new Date(value);
+    return new Date(value as string | number | Date);
   }
   return value;
 };
@@ -86,12 +86,24 @@ export function useTasks() {
   const completeTask = (taskId: string) => {
     setTasks(prevTasks =>
       prevTasks.map(task =>
-        task.id === taskId 
-          ? { ...task, completed: !task.completed, progress: 100, updatedAt: new Date() } 
+        task.id === taskId
+          ? { ...task, completed: !task.completed, progress: 100, updatedAt: new Date() }
           : task
       )
     );
   };
 
-  return { tasks, addTask, completeTask };
+  // --- THIS IS THE NEW FUNCTION (NOW COMPLETE) ---
+  const editTask = (taskId: string, updates: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId
+          ? { ...task, ...updates, updatedAt: new Date() } // This line was incomplete
+          : task
+      )
+    );
+  };
+
+  // --- THIS IS THE MISSING RETURN STATEMENT ---
+  return { tasks, addTask, completeTask, editTask };
 }
