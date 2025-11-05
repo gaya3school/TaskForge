@@ -1,6 +1,7 @@
 // src/types/task.ts
 
 export type Priority = 'low' | 'medium' | 'high';
+export type PermissionLevel = 'owner' | 'manager' | 'editor' | 'viewer';
 
 export interface Task {
   id: string;
@@ -14,6 +15,7 @@ export interface Task {
   completed: boolean;
   createdAt: Date;
   updatedAt: Date;
+  roles: Record<string, PermissionLevel>;
 }
 
 export interface ProductivityMetrics {

@@ -1,3 +1,5 @@
+// src/components/tasks/EditTaskDialog.tsx
+
 import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
@@ -26,11 +28,12 @@ import {
      PopoverContent,
      PopoverTrigger,
 } from '@/components/ui/popover';
+import { Slider } from '@/components/ui/slider'; // <-- 1. IMPORT SLIDER
 import { Task, Priority } from '@/types/task';
 import { cn } from '@/lib/utils';
 
 interface EditTaskDialogProps {
-     task: Task | null; // The task to edit
+     task: Task | null;
      onEditTask: (taskId: string, taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
      open: boolean;
      onOpenChange: (open: boolean) => void;
@@ -44,8 +47,9 @@ export function EditTaskDialog({ task, onEditTask, open, onOpenChange }: EditTas
      const [dueDate, setDueDate] = useState<Date | undefined>();
      const [estimatedHours, setEstimatedHours] = useState('');
      const [tags, setTags] = useState('');
+     const [progress, setProgress] = useState(0); // <-- 2. ADD STATE FOR PROGRESS
 
-     // This is the key: Pre-fill the form when a task is passed in
+     // Pre-fill the form
      useEffect(() => {
           if (task) {
                setTitle(task.title);
@@ -54,12 +58,13 @@ export function EditTaskDialog({ task, onEditTask, open, onOpenChange }: EditTas
                setDueDate(task.dueDate);
                setEstimatedHours(task.estimatedHours?.toString() || '');
                setTags(task.tags.join(', '));
+               setProgress(task.progress || 0); // <-- 3. SET PROGRESS STATE
           }
-     }, [task]); // This effect runs when `task` changes
+     }, [task]);
 
      const handleSubmit = (e: React.FormEvent) => {
           e.preventDefault();
-          if (!title.trim() || !task) return; // Need a task to edit
+          if (!title.trim() || !task) return;
 
           const updatedTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'> = {
                title: title.trim(),
@@ -67,10 +72,20 @@ export function EditTaskDialog({ task, onEditTask, open, onOpenChange }: EditTas
                priority,
                dueDate,
                estimatedHours: estimatedHours ? parseFloat(estimatedHours) : undefined,
-               progress: task.progress, // Keep existing progress
+               progress: progress, // <-- 4. UPDATE THIS LINE
                tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
-               completed: task.completed, // Keep existing completion status
+               completed: progress === 100 ? true : task.completed,
+               roles: task.roles
           };
+
+          // If progress was just set to 100, also update 'completed'
+          if (progress === 100) {
+               updatedTaskData.completed = true;
+          }
+          // If progress is moved from 100 to something else, un-complete it
+          else if (task.progress === 100 && progress < 100) {
+               updatedTaskData.completed = false;
+          }
 
           onEditTask(task.id, updatedTaskData);
           onOpenChange(false); // Close dialog
@@ -109,6 +124,21 @@ export function EditTaskDialog({ task, onEditTask, open, onOpenChange }: EditTas
                               />
                          </div>
 
+                         {/* --- 6. ADD THE SLIDER HERE --- */}
+                         <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                   <Label>Progress</Label>
+                                   <span className="text-sm font-medium text-muted-foreground">{progress}%</span>
+                              </div>
+                              <Slider
+                                   value={[progress]}
+                                   onValueChange={(value) => setProgress(value[0])}
+                                   max={100}
+                                   step={5} // Snaps to 5% intervals
+                              />
+                         </div>
+                         {/* --- END OF SLIDER --- */}
+
                          <div className="grid grid-cols-2 gap-4">
                               <div className="space-y-2">
                                    <Label htmlFor="priority">Priority</Label>
@@ -118,22 +148,13 @@ export function EditTaskDialog({ task, onEditTask, open, onOpenChange }: EditTas
                                         </SelectTrigger>
                                         <SelectContent>
                                              <SelectItem value="low">
-                                                  <div className="flex items-center gap-2">
-                                                       <div className="w-2 h-2 rounded-full bg-priority-low" />
-                                                       Low Priority
-                                                  </div>
+                                                  {/* ... */}
                                              </SelectItem>
                                              <SelectItem value="medium">
-                                                  <div className="flex items-center gap-2">
-                                                       <div className="w-2 h-2 rounded-full bg-priority-medium" />
-                                                       Medium Priority
-                                                  </div>
+                                                  {/* ... */}
                                              </SelectItem>
                                              <SelectItem value="high">
-                                                  <div className="flex items-center gap-2">
-                                                       <div className="w-2 h-2 rounded-full bg-priority-high" />
-                                                       High Priority
-                                                  </div>
+                                                  {/* ... */}
                                              </SelectItem>
                                         </SelectContent>
                                    </Select>
@@ -155,29 +176,7 @@ export function EditTaskDialog({ task, onEditTask, open, onOpenChange }: EditTas
 
                          <div className="space-y-2">
                               <Label>Due Date</Label>
-                              <Popover>
-                                   <PopoverTrigger asChild>
-                                        <Button
-                                             variant="outline"
-                                             className={cn(
-                                                  "w-full justify-start text-left font-normal",
-                                                  !dueDate && "text-muted-foreground"
-                                             )}
-                                        >
-                                             <CalendarIcon className="mr-2 h-4 w-4" />
-                                             {dueDate ? format(dueDate, "PPP") : <span>Pick a due date</span>}
-                                        </Button>
-                                   </PopoverTrigger>
-                                   <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                             mode="single"
-                                             selected={dueDate}
-                                             onSelect={setDueDate}
-                                             initialFocus
-                                             className={cn("p-3 pointer-events-auto")}
-                                        />
-                                   </PopoverContent>
-                              </Popover>
+                              {/* ... Popover code ... */}
                          </div>
 
                          <div className="space-y-2">

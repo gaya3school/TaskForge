@@ -4,17 +4,25 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Task } from '@/types/task'; // Make sure this import is here
+import { Task } from '@/types/task';
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { cn } from '@/lib/utils';
 
 interface TaskCalendarProps {
   tasks: Task[];
   onTaskComplete?: (taskId: string) => void;
-  onTaskEdit?: (task: Task) => void; // <-- 1. THIS LINE IS CHANGED
+  onTaskEdit?: (task: Task) => void; // Changed from (taskId: string)
+  onDelete?: (taskId: string) => void; // Receives onDelete
+  onShare?: (task: Task) => void; // Receives onShare
 }
 
-export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendarProps) {
+export function TaskCalendar({
+  tasks,
+  onTaskComplete,
+  onTaskEdit,
+  onDelete,
+  onShare
+}: TaskCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -65,7 +73,7 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl font-bold flex items-center gap-2">
                 <CalendarIcon className="h-5 w-5" />
-                {format(currentDate, 'MMMM yyyy')}
+                {format(currentDate, 'MMMM yyyY')}
               </CardTitle>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" onClick={previousMonth}>
@@ -103,6 +111,7 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
                       !isCurrentMonth && "text-muted-foreground/50",
                       isSelected && "bg-primary text-primary-foreground hover:bg-primary",
                       isToday && !isSelected && "bg-accent font-medium",
+
                       totalCount > 0 && "font-medium"
                     )}
                   >
@@ -170,7 +179,9 @@ export function TaskCalendar({ tasks, onTaskComplete, onTaskEdit }: TaskCalendar
                       <TaskCard
                         task={task}
                         onComplete={onTaskComplete}
-                        onEdit={() => onTaskEdit?.(task)}
+                        onEdit={onTaskEdit} // Pass the handler
+                        onDelete={onDelete} // Pass the handler
+                        onShare={onShare} // Pass the handler
                       />
                     </div>
                   ))}

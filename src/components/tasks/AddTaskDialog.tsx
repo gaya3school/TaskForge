@@ -1,4 +1,7 @@
-import { useState } from 'react';
+// 1. Import React for React.ReactNode
+
+import { pipeline } from '@xenova/transformers';
+import React, { useState, useEffect, useRef } from 'react';
 import { Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import {
@@ -30,12 +33,18 @@ import {
 import { Task, Priority } from '@/types/task';
 import { cn } from '@/lib/utils';
 
+// 2. Define the props interface (Fix for line 36)
 interface AddTaskDialogProps {
-  onAddTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  // This type now correctly matches the 'addTask' function in useTasks.ts
+  onAddTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'roles'>) => void;
   children?: React.ReactNode;
 }
 
 export function AddTaskDialog({ onAddTask, children }: AddTaskDialogProps) {
+  // 3. Move the ref INSIDE the component (Fix for line 34)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const classifier = useRef<any | null>(null);
+
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -43,13 +52,63 @@ export function AddTaskDialog({ onAddTask, children }: AddTaskDialogProps) {
   const [dueDate, setDueDate] = useState<Date>();
   const [estimatedHours, setEstimatedHours] = useState('');
   const [tags, setTags] = useState('');
+  const [isModelLoading, setIsModelLoading] = useState(false);
+
+  // Load the ML model
+  // Inside AddTaskDialog.tsx
+
+  useEffect(() => {
+    // We can keep the simpler logging now
+    if (open && !classifier.current) {
+      console.log('Attempting to load ML model...');
+      setIsModelLoading(true);
+
+      const options = {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        progress_callback: (progress: any) => {
+          console.log('Loading progress:', progress);
+        }
+      };
+
+      // --- THIS IS THE FINAL CLEAN CALL ---
+      pipeline('zero-shot-classification', 'Xenova/distilbert-base-uncased-mnli', options)
+        .then((model) => {
+          console.log('ML model loaded successfully!', model);
+          classifier.current = model;
+          setIsModelLoading(false);
+        })
+        .catch(err => {
+          console.error("Failed to load pipeline:", err);
+          setIsModelLoading(false);
+        });
+    }
+  }, [open]);
+
+
+  // Handle description blur
+  const handleDescriptionBlur = async () => {
+    if (!classifier.current || !description.trim() || priority !== 'medium' || isModelLoading) {
+      return;
+    }
+    const candidate_labels = ['urgent', 'important', 'casual'];
+    const result = await classifier.current(description, candidate_labels) as { labels: string[], scores: number[] };
+    const bestLabel = result.labels[0];
+
+    if (bestLabel === 'urgent') {
+      setPriority('high');
+    } else if (bestLabel === 'important') {
+      setPriority('medium');
+    } else if (bestLabel === 'casual') {
+      setPriority('low');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!title.trim()) return;
 
-    const newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt'> = {
+    // This object type now matches the onAddTask prop type perfectly
+    const newTask: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'roles'> = {
       title: title.trim(),
       description: description.trim() || undefined,
       priority,
@@ -60,8 +119,9 @@ export function AddTaskDialog({ onAddTask, children }: AddTaskDialogProps) {
       completed: false,
     };
 
+    // 5. Removed 'as any' (Fix for line 96)
     onAddTask(newTask);
-    
+
     // Reset form
     setTitle('');
     setDescription('');
@@ -82,7 +142,7 @@ export function AddTaskDialog({ onAddTask, children }: AddTaskDialogProps) {
           </Button>
         )}
       </DialogTrigger>
-      
+
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Task</DialogTitle>
@@ -90,7 +150,7 @@ export function AddTaskDialog({ onAddTask, children }: AddTaskDialogProps) {
             Add a new task to your workflow. Fill in the details below.
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Task Title *</Label>
@@ -101,6 +161,11 @@ export function AddTaskDialog({ onAddTask, children }: AddTaskDialogProps) {
               onChange={(e) => setTitle(e.target.value)}
               required
             />
+            {isModelLoading && (
+              <p className="text-xs text-muted-foreground pt-1">
+                AI is warming up...
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -110,6 +175,7 @@ export function AddTaskDialog({ onAddTask, children }: AddTaskDialogProps) {
               placeholder="Describe your task..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onBlur={handleDescriptionBlur}
               rows={3}
             />
           </div>
@@ -203,12 +269,12 @@ export function AddTaskDialog({ onAddTask, children }: AddTaskDialogProps) {
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="bg-gradient-primary text-white hover:opacity-90"
-              disabled={!title.trim()}
+              disabled={!title.trim() || isModelLoading}
             >
-              Create Task
+              {isModelLoading ? 'Warming up...' : 'Create Task'}
             </Button>
           </DialogFooter>
         </form>

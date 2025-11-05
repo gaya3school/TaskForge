@@ -1,109 +1,156 @@
-// src/hooks/useTasks.ts
-
 import { useState, useEffect } from 'react';
-import { Task } from '@/types/task';
+import { Task, Priority, PermissionLevel } from '@/types/task'; // 1. Import new types
+import { useAuth } from '@/contexts/AuthContext';
+import { db } from '@/firebaseConfig';
+import {
+  collection,
+  query,
+  onSnapshot,
+  addDoc,
+  doc,
+  updateDoc,
+  deleteDoc,
+  Timestamp,
+  serverTimestamp,
+  where
+} from "firebase/firestore";
 
-// Using the mock data from your Home.tsx as a fallback for first-time users
-const initialTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Review quarterly budget proposals',
-    description: 'Analyze Q4 budget allocations and prepare recommendations for the board meeting.',
-    priority: 'high',
-    dueDate: new Date('2025-12-25'),
-    estimatedHours: 3,
-    progress: 75,
-    tags: ['finance', 'urgent'],
-    completed: false,
-    createdAt: new Date('2025-12-20'),
-    updatedAt: new Date('2025-12-23'),
-  },
-  {
-    id: '2',
-    title: 'Update project documentation',
-    description: 'Revise API documentation and user guides for the new feature release.',
-    priority: 'medium',
-    dueDate: new Date('2025-12-26'),
-    estimatedHours: 2,
-    progress: 30,
-    tags: ['documentation', 'api'],
-    completed: false,
-    createdAt: new Date('2025-12-21'),
-    updatedAt: new Date('2025-12-23'),
-  },
-  // Add the rest of your mock tasks here
-];
-
-const TASKS_STORAGE_KEY = 'taskforge-tasks';
-
-// These helper functions correctly handle converting Date objects to strings for storage
-const jsonReplacer = (key: string, value: unknown) => {
-  if (['dueDate', 'createdAt', 'updatedAt'].includes(key) && value) {
-    return new Date(value as string | number | Date).toISOString();
-  }
-  return value;
-};
-
-const jsonReviver = (key: string, value: unknown) => {
-  if (['dueDate', 'createdAt', 'updatedAt'].includes(key) && value) {
-    return new Date(value as string | number | Date);
-  }
-  return value;
+// Firestore type
+type FirestoreTask = Omit<Task, 'id' | 'dueDate' | 'createdAt' | 'updatedAt'> & {
+  dueDate?: Timestamp;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 };
 
 export function useTasks() {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    try {
-      const storedTasks = localStorage.getItem(TASKS_STORAGE_KEY);
-      if (storedTasks) {
-        return JSON.parse(storedTasks, jsonReviver);
-      }
-    } catch (error) {
-      console.error("Failed to load tasks from localStorage", error);
-    }
-    return initialTasks; // Load initial data if storage is empty
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // This effect runs every time the `tasks` state changes, saving it to localStorage
   useEffect(() => {
-    try {
-      localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks, jsonReplacer));
-    } catch (error) {
-      console.error("Failed to save tasks to localStorage", error);
+    if (!user) {
+      setLoading(false);
+      setTasks([]);
+      return;
     }
-  }, [tasks]);
 
-  const addTask = (newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newTask: Task = {
-      ...newTaskData,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    setLoading(true);
+
+    // 2. This is the new query!
+    // Get all tasks from the top-level 'tasks' collection...
+    const collectionRef = collection(db, 'tasks');
+
+    // ...where the user's ID is present in the 'roles' map.
+    // This single query gets tasks YOU OWN and tasks SHARED WITH YOU.
+    const q = query(collectionRef, where(`roles.${user.uid}`, 'in', ['owner', 'manager', 'editor', 'viewer']));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const tasksFromFirestore: Task[] = snapshot.docs.map((doc) => {
+        const data = doc.data() as FirestoreTask;
+        return {
+          id: doc.id,
+          ...data,
+          dueDate: data.dueDate?.toDate(),
+          createdAt: data.createdAt.toDate(),
+          updatedAt: data.updatedAt.toDate(),
+        };
+      });
+
+      setTasks(tasksFromFirestore);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // --- DATABASE FUNCTIONS (Now point to /tasks) ---
+
+  const addTask = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'roles'>) => {
+    if (!user) return;
+
+    // 3. Create the new task in the top-level 'tasks' collection
+    const collectionRef = collection(db, 'tasks');
+
+    const { dueDate, ...restOfTaskData } = taskData;
+
+    const dataToSave = {
+      ...restOfTaskData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      ...(dueDate && { dueDate: Timestamp.fromDate(dueDate) }),
+
+      // 4. Set the creator as the 'owner' in the roles map
+      roles: {
+        [user.uid]: 'owner' as PermissionLevel,
+      }
     };
-    setTasks(prevTasks => [newTask, ...prevTasks]);
+
+    await addDoc(collectionRef, dataToSave);
   };
 
-  const completeTask = (taskId: string) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId
-          ? { ...task, completed: !task.completed, progress: 100, updatedAt: new Date() }
-          : task
-      )
-    );
+  const editTask = async (taskId: string, updates: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'roles'>) => {
+    if (!user) return;
+
+    // 5. Update the doc in the top-level 'tasks' collection
+    const docRef = doc(db, 'tasks', taskId);
+
+    // remove dueDate if it's undefined, otherwise convert to Timestamp
+    const { dueDate, ...restOfTaskData } = updates;
+    const dataToSave: any = {
+      ...restOfTaskData,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (dueDate) {
+      dataToSave.dueDate = Timestamp.fromDate(dueDate);
+    } else {
+      // If dueDate is explicitly set to undefined or null, you might want to remove it
+      // Or handle it as needed. For now, we'll just not add it if it's not present.
+      // If you want to *delete* a date, you'd need special handling.
+    }
+
+    await updateDoc(docRef, dataToSave);
   };
 
-  // --- THIS IS THE NEW FUNCTION (NOW COMPLETE) ---
-  const editTask = (taskId: string, updates: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId
-          ? { ...task, ...updates, updatedAt: new Date() } // This line was incomplete
-          : task
-      )
-    );
+  const completeTask = async (taskId: string) => {
+    if (!user) return;
+
+    const taskToComplete = tasks.find(t => t.id === taskId);
+    if (!taskToComplete) return;
+
+    const newCompletedStatus = !taskToComplete.completed;
+    const docRef = doc(db, 'tasks', taskId);
+
+    await updateDoc(docRef, {
+      completed: newCompletedStatus,
+      progress: newCompletedStatus ? 100 : 0,
+      updatedAt: serverTimestamp(),
+    });
   };
 
-  // --- THIS IS THE MISSING RETURN STATEMENT ---
-  return { tasks, addTask, completeTask, editTask };
+  const deleteTask = async (taskId: string) => {
+    if (!user) return;
+    const docRef = doc(db, 'tasks', taskId);
+    await deleteDoc(docRef);
+  };
+
+  // 6. We'll add this function in the next step
+  const updateTaskRoles = async (taskId: string, newRoles: Record<string, PermissionLevel>) => {
+    if (!user) return;
+    const docRef = doc(db, 'tasks', taskId);
+    await updateDoc(docRef, {
+      roles: newRoles,
+      updatedAt: serverTimestamp(),
+    });
+  };
+
+  return {
+    tasks,
+    loading,
+    addTask,
+    editTask,
+    completeTask,
+    deleteTask,
+    updateTaskRoles // 7. Export the new function
+  };
 }

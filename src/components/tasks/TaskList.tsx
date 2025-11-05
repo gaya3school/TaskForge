@@ -6,9 +6,18 @@ interface TaskListProps {
   tasks: Task[];
   onTaskComplete?: (taskId: string) => void;
   onTaskEdit?: (task: Task) => void;
+  onDelete?: (taskId: string) => void;
+  onShare?: (task: Task) => void;
 }
 
-export function TaskList({ tasks, onTaskComplete, onTaskEdit }: TaskListProps) {
+export function TaskList({
+  tasks,
+  onTaskComplete,
+  onTaskEdit,
+  onDelete,
+  onShare
+}: TaskListProps) {
+
   const groupedTasks = tasks.reduce((acc, task) => {
     if (!task.completed) {
       if (!acc[task.priority]) {
@@ -22,7 +31,7 @@ export function TaskList({ tasks, onTaskComplete, onTaskEdit }: TaskListProps) {
   const priorityOrder: Priority[] = ['high', 'medium', 'low'];
   const priorityLabels = {
     high: 'High Priority',
-    medium: 'Medium Priority', 
+    medium: 'Medium Priority',
     low: 'Low Priority'
   };
 
@@ -36,7 +45,7 @@ export function TaskList({ tasks, onTaskComplete, onTaskEdit }: TaskListProps) {
     <div className="space-y-6">
       {priorityOrder.map((priority) => {
         const priorityTasks = groupedTasks[priority] || [];
-        
+
         if (priorityTasks.length === 0) return null;
 
         return (
@@ -50,7 +59,7 @@ export function TaskList({ tasks, onTaskComplete, onTaskEdit }: TaskListProps) {
                 ({priorityTasks.length})
               </span>
             </div>
-            
+
             <ScrollArea className="max-h-96">
               <div className="space-y-3">
                 {priorityTasks.map((task) => (
@@ -58,7 +67,9 @@ export function TaskList({ tasks, onTaskComplete, onTaskEdit }: TaskListProps) {
                     key={task.id}
                     task={task}
                     onComplete={onTaskComplete}
-                    onEdit={() => onTaskEdit?.(task)}
+                    onEdit={onTaskEdit}     // <-- Passes the function
+                    onDelete={onDelete}   // <-- Passes the function
+                    onShare={onShare}     // <-- Passes the function
                   />
                 ))}
               </div>

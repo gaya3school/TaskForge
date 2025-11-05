@@ -1,4 +1,4 @@
-import { Home, BarChart3, Focus, Plus, Moon, Sun } from "lucide-react";
+import { Home, BarChart3, Focus, Moon, Sun } from "lucide-react"; // Removed LogOut
 import { NavLink, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/contexts/ThemeContext";
+// We no longer need useAuth here
 
 const navigation = [
   { title: "Home", url: "/", icon: Home },
@@ -26,6 +27,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
+  // We no longer need user or logout here
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
 
@@ -66,10 +68,10 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      {/* Footer is now just the theme toggle */}
+      <SidebarFooter className="p-4 space-y-2">
         <Button
           variant="ghost"
           size="sm"

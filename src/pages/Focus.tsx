@@ -4,6 +4,9 @@ import { FocusMode } from '@/components/focus/FocusMode';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Play, Clock, Target } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { db } from '@/firebaseConfig';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export default function Focus() {
   const [isFocusModeActive, setIsFocusModeActive] = useState(false);
