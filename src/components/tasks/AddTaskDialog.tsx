@@ -1,9 +1,10 @@
 // 1. Import React for React.ReactNode
 
-import { pipeline } from '@xenova/transformers';
+import { env} from '@xenova/transformers';
+import { pipeline } from '@xenova/transformers'; 
 import React, { useState, useEffect, useRef } from 'react';
-import { Plus, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { Plus, Calendar as CalendarIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -32,8 +33,7 @@ import {
 } from '@/components/ui/popover';
 import { Task, Priority } from '@/types/task';
 import { cn } from '@/lib/utils';
-
-// 2. Define the props interface (Fix for line 36)
+env.localModelPath = 'https://huggingface.co/';
 interface AddTaskDialogProps {
   // This type now correctly matches the 'addTask' function in useTasks.ts
   onAddTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'roles'>) => void;
@@ -53,9 +53,6 @@ export function AddTaskDialog({ onAddTask, children }: AddTaskDialogProps) {
   const [estimatedHours, setEstimatedHours] = useState('');
   const [tags, setTags] = useState('');
   const [isModelLoading, setIsModelLoading] = useState(false);
-
-  // Load the ML model
-  // Inside AddTaskDialog.tsx
 
   useEffect(() => {
     // We can keep the simpler logging now

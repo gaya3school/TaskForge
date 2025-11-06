@@ -51,8 +51,8 @@ export function useTasks() {
           id: doc.id,
           ...data,
           dueDate: data.dueDate?.toDate(),
-          createdAt: data.createdAt.toDate(),
-          updatedAt: data.updatedAt.toDate(),
+          createdAt: data.createdAt?.toDate(),
+          updatedAt: data.updatedAt?.toDate(),
         };
       });
 
@@ -96,6 +96,7 @@ export function useTasks() {
 
     // remove dueDate if it's undefined, otherwise convert to Timestamp
     const { dueDate, ...restOfTaskData } = updates;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dataToSave: any = {
       ...restOfTaskData,
       updatedAt: serverTimestamp(),
